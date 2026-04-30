@@ -1,14 +1,15 @@
-// bot.js - Bot de WhatsApp para Grupo Euskadi - Flujo COMPLETO original
+// bot.js - Bot de WhatsApp para Grupo Euskadi - Flujo COMPLETO con fix Railway
 const { Client, LocalAuth } = require('whatsapp-web.js');
 const qrcode = require('qrcode-terminal');
 const express = require('express');
 const app = express();
 const PORT = process.env.PORT || 3000;
 
-// Servidor web para mantener vivo el bot
+// ========== SERVIDOR WEB PARA KEEP ALIVE ==========
 app.get('/', (req, res) => {
-    res.send('🤖 Bot de WhatsApp - Grupo Euskadi - Funcionando');
+    res.send('🤖 Bot de WhatsApp - Grupo Euskadi - Funcionando 24/7');
 });
+
 app.listen(PORT, '0.0.0.0', () => {
     console.log(`🌐 Servidor web activo en puerto ${PORT}`);
 });
@@ -19,8 +20,13 @@ const HORARIO_FIN = 18;
 const EMPRESA = "Grupo Euskadi";
 
 // ========== CLIENTE OPTIMIZADO PARA RAILWAY ==========
+console.log('🔄 Inicializando bot para Railway...');
+
 const client = new Client({
-    authStrategy: new LocalAuth(),
+    authStrategy: new LocalAuth({
+        clientId: "whatsapp-bot-rrhh",
+        dataPath: "./.wwebjs_auth"
+    }),
     puppeteer: {
         headless: true,
         args: [
@@ -29,47 +35,86 @@ const client = new Client({
             '--disable-dev-shm-usage',
             '--disable-accelerated-2d-canvas',
             '--disable-gpu',
-            '--disable-extensions'
+            '--disable-extensions',
+            '--disable-default-apps',
+            '--disable-sync',
+            '--disable-translate',
+            '--hide-scrollbars',
+            '--metrics-recording-only',
+            '--mute-audio',
+            '--no-first-run',
+            '--safebrowsing-disable-auto-update',
+            '--disable-web-security',
+            '--disable-features=VizDisplayCompositor',
+            '--disable-background-timer-throttling',
+            '--disable-backgrounding-occluded-windows',
+            '--disable-renderer-backgrounding'
         ],
-        protocolTimeout: 180000, // 3 minutos
-        timeout: 120000
+        protocolTimeout: 300000,
+        timeout: 300000
     }
 });
 
-// ========== QR - VERSIÓN FUNCIONAL EN RAILWAY ==========
-// Reemplaza la sección del QR con esto:
+// ========== QR - VERSIÓN GARANTIZADA PARA RAILWAY ==========
 client.on('qr', (qr) => {
-    console.log('=========================================');
-    console.log('🔴 CÓDIGO QR GENERADO - ESCANEA AHORA 🔴');
-    console.log('=========================================');
+    console.log('\n');
+    console.log('╔════════════════════════════════════════════════════════════╗');
+    console.log('║     🔴 ESCANEA ESTE QR CON WHATSAPP WEB 🔴                  ║');
+    console.log('╚════════════════════════════════════════════════════════════╝');
+    console.log('\n');
     console.log(qr);
-    console.log('=========================================');
-    console.log('📱 INSTRUCCIONES:');
-    console.log('1. Abre WhatsApp en tu teléfono');
-    console.log('2. Menú (⋮) → Dispositivos vinculados');
-    console.log('3. Toca "Vincular dispositivo"');
-    console.log('4. Escanea el código QR de arriba');
-    console.log('=========================================');
-    process.stdout.write('\x07'); // Hace "beep" para llamar la atención
+    console.log('\n');
+    console.log('╔════════════════════════════════════════════════════════════╗');
+    console.log('║  📱 INSTRUCCIONES:                                         ║');
+    console.log('║  1. Abre WhatsApp en tu teléfono                           ║');
+    console.log('║  2. Menú (⋮) → Dispositivos vinculados                     ║');
+    console.log('║  3. Toca "Vincular dispositivo"                            ║');
+    console.log('║  4. ESCANEA EL CÓDIGO QR DE ARRIBA                         ║');
+    console.log('║  5. El QR expira en 2 minutos                              ║');
+    console.log('╚════════════════════════════════════════════════════════════╝');
+    console.log('\n');
 });
 
-// ========== BOT CONECTADO ==========
+// ========== EVENTOS DE DEPURACIÓN ==========
+client.on('authenticated', () => {
+    console.log('✅ Autenticación exitosa - QR escaneado correctamente');
+});
+
+client.on('auth_failure', (msg) => {
+    console.error('❌ Error de autenticación:', msg);
+    console.log('🔄 Esperando nuevo QR...');
+});
+
+client.on('disconnected', (reason) => {
+    console.log('⚠️ Bot desconectado:', reason);
+    console.log('🔄 Reconectando en 5 segundos...');
+    setTimeout(() => {
+        client.initialize();
+    }, 5000);
+});
+
+client.on('loading', (status) => {
+    console.log('⏳ Cargando:', status);
+});
+
 client.on('ready', () => {
-    console.log(`✅ Bot de WhatsApp - ${EMPRESA} - Conectado correctamente`);
-    console.log(`📅 Horario: Lunes a Viernes de ${HORARIO_INICIO}:00 a ${HORARIO_FIN}:00 hrs`);
-    console.log('🎯 Bot listo para responder mensajes');
+    console.log('╔════════════════════════════════════════════════════════════╗');
+    console.log(`║     ✅ BOT CONECTADO CORRECTAMENTE                          ║`);
+    console.log(`║     📌 ${EMPRESA} - Recursos Humanos                         ║`);
+    console.log(`║     🕘 Horario: Lunes a Viernes de ${HORARIO_INICIO}:00 a ${HORARIO_FIN}:00 hrs       ║`);
+    console.log(`╚════════════════════════════════════════════════════════════╝`);
 });
 
-// ========== VERIFICAR HORARIO ==========
+// ========== VERIFICAR HORARIO LABORAL ==========
 function estaEnHorarioLaboral() {
     const ahora = new Date();
     const hora = ahora.getHours();
-    const dia = ahora.getDay();
-    if (dia === 0 || dia === 6) return false;
+    const diaSemana = ahora.getDay();
+    if (diaSemana === 0 || diaSemana === 6) return false;
     return hora >= HORARIO_INICIO && hora < HORARIO_FIN;
 }
 
-// ========== MENSAJES (tu flujo original completo) ==========
+// ========== MENSAJES DEL SISTEMA ==========
 function getMensajeFueraHorario() {
     return `📌 Fuera de horario
 
@@ -171,7 +216,7 @@ Si necesitas más ayuda, no dudes en escribirnos nuevamente.
 ¡Que tengas un excelente día! 🌟`;
 }
 
-// ========== MANEJO DE ESTADOS ==========
+// ========== MANEJO DE CONVERSACIONES ==========
 const estados = new Map();
 const ESTADOS = {
     INICIO: 'inicio',
@@ -185,9 +230,9 @@ client.on('message', async (message) => {
         const contacto = await message.getContact();
         const numero = contacto.number;
         const cuerpo = message.body.trim().toLowerCase();
-        const original = message.body.trim();
+        const cuerpoOriginal = message.body.trim();
 
-        console.log(`📩 Mensaje de ${numero}: ${original.substring(0, 50)}`);
+        console.log(`📩 Mensaje de ${numero}: ${cuerpoOriginal.substring(0, 50)}`);
 
         if (!estaEnHorarioLaboral()) {
             await message.reply(getMensajeFueraHorario());
@@ -207,7 +252,7 @@ client.on('message', async (message) => {
             await message.reply(getMensajeBienvenida());
 
         } else if (estado === ESTADOS.ESPERANDO_DATOS) {
-            console.log(`📋 Datos de ${numero}: ${original}`);
+            console.log(`📋 Datos de ${numero}: ${cuerpoOriginal}`);
             await message.reply(getMensajeConfirmacion());
             await message.reply("¿Tu consulta es sobre información general? (responde SI o NO)");
             estados.set(numero, 'preguntando_si');
@@ -229,6 +274,7 @@ client.on('message', async (message) => {
         } else if (estado === ESTADOS.ESPERANDO_OPCION) {
             await message.reply("Por favor, responde con un número del 1 al 5.");
         }
+
     } catch (error) {
         console.error('❌ Error:', error);
         await message.reply('Lo sentimos, ocurrió un error. Por favor intenta nuevamente.');
@@ -244,26 +290,7 @@ process.on('SIGINT', () => {
     console.log('⚠️ Señal SIGINT ignorada. El bot sigue funcionando...');
 });
 
-// ========== INICIAR ==========
-// Agrega esto ANTES de client.initialize()
-console.log('🔄 Inicializando Puppeteer...');
-
-client.on('loading', (status) => {
-    console.log('⏳ Estado de carga:', status);
-});
-
-client.on('authenticated', () => {
-    console.log('✅ Autenticación exitosa');
-});
-
-client.on('auth_failure', (msg) => {
-    console.error('❌ Fallo autenticación:', msg);
-});
-
-client.on('disconnected', (reason) => {
-    console.log('⚠️ Desconectado:', reason);
-});
-
-client.on('error', (err) => {
-    console.error('❌ Error general:', err);
-});
+// ========== INICIAR EL BOT ==========
+client.initialize();
+console.log(`🚀 Bot iniciado - ${EMPRESA}`);
+console.log('💡 Esperando código QR...');
