@@ -1,83 +1,49 @@
-// bot.js - Bot de WhatsApp para Grupo Euskadi - Flujo COMPLETO + QR en URL
+// bot.js - Bot de WhatsApp para Grupo Euskadi - Versión con QR forzado
 const { Client, LocalAuth } = require('whatsapp-web.js');
-const qrcode = require('qrcode-terminal');
 const express = require('express');
 const app = express();
-const PORT = process.env.PORT || 3000;
+const PORT = process.env.PORT || 8080;
 
-// ========== SERVIDOR WEB PARA KEEP ALIVE Y QR ==========
 let qrCodeGenerado = null;
+let botListo = false;
 
+// ========== SERVIDOR WEB ==========
 app.get('/', (req, res) => {
-    res.send('🤖 Bot de WhatsApp - Grupo Euskadi - Funcionando 24/7');
+    res.send(`
+        <html>
+            <head><title>Bot Grupo Euskadi</title></head>
+            <body style="text-align:center; padding:50px; font-family:Arial;">
+                <h1>🤖 Bot de WhatsApp - Grupo Euskadi</h1>
+                <p>Estado: ${botListo ? '🟢 CONECTADO' : '🟡 INICIANDO...'}</p>
+                <p>📱 Para conectar el bot, ve a <a href="/qr">/qr</a></p>
+            </body>
+        </html>
+    `);
 });
 
-// Endpoint para ver el QR en el navegador
 app.get('/qr', (req, res) => {
     if (qrCodeGenerado) {
         res.send(`
             <html>
                 <head>
-                    <title>QR Bot - Grupo Euskadi</title>
+                    <title>QR - Grupo Euskadi</title>
                     <meta name="viewport" content="width=device-width, initial-scale=1.0">
                     <style>
-                        body {
-                            font-family: Arial, sans-serif;
-                            text-align: center;
-                            padding: 50px;
-                            background: #f0f0f0;
-                        }
-                        .container {
-                            background: white;
-                            border-radius: 20px;
-                            padding: 30px;
-                            max-width: 500px;
-                            margin: 0 auto;
-                            box-shadow: 0 4px 15px rgba(0,0,0,0.1);
-                        }
-                        img {
-                            max-width: 100%;
-                            height: auto;
-                            border: 5px solid #25D366;
-                            border-radius: 15px;
-                        }
-                        h1 { color: #075E54; }
-                        .steps {
-                            text-align: left;
-                            margin-top: 20px;
-                            padding: 15px;
-                            background: #f9f9f9;
-                            border-radius: 10px;
-                        }
-                        .qr-text {
-                            font-family: monospace;
-                            font-size: 10px;
-                            word-break: break-all;
-                            background: #eee;
-                            padding: 10px;
-                            border-radius: 5px;
-                            margin-top: 15px;
-                        }
+                        body { text-align:center; padding:20px; font-family:Arial; background:#f0f0f0; }
+                        .qr-container { background:white; border-radius:20px; padding:30px; max-width:500px; margin:0 auto; }
+                        img { max-width:100%; border:5px solid #25D366; border-radius:15px; }
                     </style>
                 </head>
                 <body>
-                    <div class="container">
-                        <h1>🤖 Grupo Euskadi</h1>
-                        <h2>Recursos Humanos</h2>
-                        <h3>📱 Escanea este QR con WhatsApp</h3>
+                    <div class="qr-container">
+                        <h1>🤖 Grupo Euskadi - RRHH</h1>
+                        <h2>📱 Escanea este QR</h2>
                         <img src="https://quickchart.io/qr?text=${encodeURIComponent(qrCodeGenerado)}&size=350" />
-                        <div class="steps">
-                            <strong>📌 Pasos:</strong><br>
-                            1️⃣ Abre WhatsApp en tu teléfono<br>
-                            2️⃣ Menú (⋮) → Dispositivos vinculados<br>
-                            3️⃣ Toca "Vincular dispositivo"<br>
-                            4️⃣ ESCANEA el código QR de arriba<br>
-                            5️⃣ ¡El bot comenzará a funcionar!
-                        </div>
-                        <div class="qr-text">
-                            <strong>🔐 Texto del QR (copia si es necesario):</strong><br>
-                            ${qrCodeGenerado.substring(0, 200)}...
-                        </div>
+                        <p><strong>Pasos:</strong></p>
+                        <p>1️⃣ Abre WhatsApp → Menú → Dispositivos vinculados</p>
+                        <p>2️⃣ Toca "Vincular dispositivo"</p>
+                        <p>3️⃣ Escanea el código QR de arriba</p>
+                        <p>✅ ¡El bot comenzará a funcionar!</p>
                     </div>
                 </body>
             </html>
@@ -85,16 +51,11 @@ app.get('/qr', (req, res) => {
     } else {
         res.send(`
             <html>
-                <head><title>QR Bot - Grupo Euskadi</title></head>
                 <body style="text-align:center; padding:50px; font-family:Arial;">
-                    <h1>🤖 Grupo Euskadi - RRHH</h1>
-                    <p>⏳ <strong>Generando código QR...</strong></p>
-                    <p>Espera unos segundos y recarga esta página.</p>
-                    <p>📱 Si ya escaneaste el QR, el bot ya está conectado.</p>
-                    <p><small>La página se actualiza automáticamente cada 10 segundos</small></p>
-                    <script>
-                        setTimeout(() => location.reload(), 10000);
-                    </script>
+                    <h1>⏳ Generando código QR...</h1>
+                    <p>El bot está iniciando. Espera 1-2 minutos y recarga esta página.</p>
+                    <p><strong>Estado del bot:</strong> ${botListo ? 'Conectado' : 'Iniciando...'}</p>
+                    <script>setTimeout(() => location.reload(), 5000);</script>
                 </body>
             </html>
         `);
@@ -102,129 +63,84 @@ app.get('/qr', (req, res) => {
 });
 
 app.listen(PORT, '0.0.0.0', () => {
-    console.log(`🌐 Servidor web activo en puerto ${PORT}`);
-    console.log(`📱 PARA ESCANEAR QR: https://tuservicio.railway.app/qr`);
+    console.log(`✅ Servidor web: https://localhost:${PORT}`);
+    console.log(`📱 URL para QR: https://tuproyecto.railway.app/qr`);
 });
 
 // ========== CONFIGURACIÓN ==========
+const EMPRESA = "Grupo Euskadi";
 const HORARIO_INICIO = 8;
 const HORARIO_FIN = 18;
-const EMPRESA = "Grupo Euskadi";
 
-// ========== CLIENTE OPTIMIZADO PARA RAILWAY ==========
-console.log('🔄 Inicializando bot para Railway...');
+console.log('🚀 Iniciando bot...');
+console.log('⏳ Cargando Puppeteer (esto toma 30-60 segundos)...');
 
+// ========== CLIENTE ==========
 const client = new Client({
-    authStrategy: new LocalAuth({
-        clientId: "whatsapp-bot-rrhh",
-        dataPath: "./.wwebjs_auth"
-    }),
+    authStrategy: new LocalAuth(),
     puppeteer: {
         headless: true,
         args: [
             '--no-sandbox',
             '--disable-setuid-sandbox',
-            '--disable-dev-shm-usage',
-            '--disable-accelerated-2d-canvas',
-            '--disable-gpu',
-            '--disable-extensions',
-            '--disable-default-apps',
-            '--disable-sync',
-            '--disable-translate',
-            '--hide-scrollbars',
-            '--metrics-recording-only',
-            '--mute-audio',
-            '--no-first-run',
-            '--safebrowsing-disable-auto-update',
-            '--disable-web-security',
-            '--disable-features=VizDisplayCompositor',
-            '--disable-background-timer-throttling',
-            '--disable-backgrounding-occluded-windows',
-            '--disable-renderer-backgrounding'
-        ],
-        protocolTimeout: 300000,
-        timeout: 300000
+            '--disable-dev-shm-usage'
+        ]
     }
 });
 
-// ========== QR - CON LOGS Y URL ==========
+// ========== QR ==========
 client.on('qr', (qr) => {
     qrCodeGenerado = qr;
-    
-    console.log('\n╔════════════════════════════════════════════════════════════╗');
-    console.log('║     🔴 QR GENERADO - ESCANEA CON WHATSAPP WEB 🔴             ║');
-    console.log('╚════════════════════════════════════════════════════════════╝');
-    console.log('\n📋 TEXTO DEL QR (primeros 100 caracteres):');
-    console.log(qr.substring(0, 100) + '...\n');
-    console.log('🌐 VER QR EN NAVEGADOR:');
-    console.log(`   https://quickchart.io/qr?text=${encodeURIComponent(qr)}&size=350`);
-    console.log('\n📱 INSTRUCCIONES:');
-    console.log('   1. Abre WhatsApp en tu teléfono');
-    console.log('   2. Menú (⋮) → Dispositivos vinculados');
-    console.log('   3. Toca "Vincular dispositivo"');
-    console.log('   4. ESCANEA el QR de arriba o desde el enlace');
-    console.log('══════════════════════════════════════════════════════════════\n');
+    console.log('\n========================================');
+    console.log('🔴 QR GENERADO');
+    console.log('========================================');
+    console.log('📱 Ve a: https://TU_PROYECTO.railway.app/qr');
+    console.log('========================================\n');
 });
 
-// ========== EVENTOS DE DEPURACIÓN ==========
-client.on('authenticated', () => {
-    console.log('✅ Autenticación exitosa - QR escaneado correctamente');
-    qrCodeGenerado = null;
-});
-
-client.on('auth_failure', (msg) => {
-    console.error('❌ Error de autenticación:', msg);
-    console.log('🔄 Esperando nuevo QR...');
-});
-
-client.on('disconnected', (reason) => {
-    console.log('⚠️ Bot desconectado:', reason);
-    console.log('🔄 Reconectando en 5 segundos...');
-    setTimeout(() => {
-        client.initialize();
-    }, 5000);
-});
-
-client.on('loading', (status) => {
-    console.log('⏳ Cargando:', status);
-});
-
+// ========== CONECTADO ==========
 client.on('ready', () => {
-    console.log('\n╔════════════════════════════════════════════════════════════╗');
-    console.log('║     ✅ BOT CONECTADO CORRECTAMENTE                          ║');
-    console.log(`║     📌 ${EMPRESA} - Recursos Humanos                         ║`);
-    console.log(`║     🕘 Horario: Lunes a Viernes de ${HORARIO_INICIO}:00 a ${HORARIO_FIN}:00 hrs       ║`);
-    console.log('║     🎯 El bot está listo para responder mensajes            ║');
-    console.log('╚════════════════════════════════════════════════════════════╝\n');
+    botListo = true;
+    qrCodeGenerado = null;
+    console.log('\n========================================');
+    console.log('✅ BOT CONECTADO - GRUPO EUSKADI');
+    console.log('🎯 El bot ya responde mensajes');
+    console.log('========================================\n');
 });
 
-// ========== VERIFICAR HORARIO LABORAL ==========
+client.on('auth_failure', () => {
+    console.log('❌ Error de autenticación. Esperando nuevo QR...');
+});
+
+client.on('disconnected', () => {
+    console.log('⚠️ Bot desconectado. Reconectando...');
+    botListo = false;
+});
+
+// ========== HORARIO ==========
 function estaEnHorarioLaboral() {
     const ahora = new Date();
     const hora = ahora.getHours();
-    const diaSemana = ahora.getDay();
-    if (diaSemana === 0 || diaSemana === 6) return false;
-    return hora >= HORARIO_INICIO && hora < HORARIO_FIN;
+    const dia = ahora.getDay();
+    if (dia === 0 || dia === 6) return false;
+    return hora >= 8 && hora < 18;
 }
 
-// ========== MENSAJES DEL SISTEMA ==========
+// ========== MENSAJES ==========
 function getMensajeFueraHorario() {
     return `📌 Fuera de horario
 
 Hola 👋
 Gracias por escribir a Recursos Humanos de *${EMPRESA}*.
 
-En este momento estamos fuera de nuestro horario de atención 🕘
-Nuestro horario es de *lunes a viernes de 08:00 a 18:00 hrs*.
+Horario: *lunes a viernes de 08:00 a 18:00 hrs*.
 
-Te responderemos a la brevedad en el siguiente día hábil. ¡Gracias por tu paciencia! 🙌`;
+Te responderemos el próximo día hábil. 🙌`;
 }
 
 function getMensajeBienvenida() {
     return `Hola 👋
-Bienvenido/a al canal de Recursos Humanos de *${EMPRESA}*.
-
-Tu consulta es importante para nosotros, y será respondida a la brevedad dentro de nuestro horario de atención 🕘
+Bienvenido/a a Recursos Humanos de *${EMPRESA}*.
 
 Por favor, indícanos:
 
@@ -236,21 +152,13 @@ Por favor, indícanos:
 }
 
 function getMensajeConfirmacion() {
-    return `📌 Confirmación de recepción
+    return `✅ Hemos recibido tu solicitud.
 
-Hola 👋
-Hemos recibido tu solicitud correctamente ✅
-
-Nuestro equipo de ${EMPRESA} la revisará y te responderá dentro de las próximas horas.
-
-¡Gracias por contactarte con Recursos Humanos! 😊`;
+¿Tu consulta es sobre información general? (responde SI o NO)`;
 }
 
 function getMenuInfoGeneral() {
-    return `📌 Solicitud de información general - ${EMPRESA}
-
-Hola 👋
-Para ayudarte mejor, por favor indícanos el motivo de tu consulta:
+    return `📌 Información General
 
 1️⃣ Licencias médicas
 2️⃣ Vacaciones
@@ -258,132 +166,81 @@ Para ayudarte mejor, por favor indícanos el motivo de tu consulta:
 4️⃣ Contrato o anexos
 5️⃣ Otros
 
-Responde con el número de tu opción ✍️`;
+Responde con el número ✍️`;
 }
 
 function getRespuestaOpcion(opcion) {
     const respuestas = {
-        '1': `📌 *Licencias médicas* - ${EMPRESA}
-
-Para gestionar tu licencia médica, necesitamos que adjuntes el documento escaneado o foto de la licencia.
-
-📎 Por favor, adjunta: Licencia médica (frontal y trasera)
-
-Una vez recibida, la derivaremos al área correspondiente.`,
-        '2': `📌 *Vacaciones* - ${EMPRESA}
-
-Sobre tu consulta de vacaciones:
-
-📌 Puedes revisar tu saldo directamente en el sistema interno
-📌 Para solicitar vacaciones, debes enviar tu solicitud a través del formulario interno.
-
-Si necesitas más ayuda, escríbenos nuevamente 😊`,
-        '3': `📌 *Liquidaciones de sueldo* - ${EMPRESA}
-
-Puedes descargar tus liquidaciones de sueldo desde el portal del colaborador.
-
-Si necesitas una copia de períodos anteriores, indícanos qué meses requieres.`,
-        '4': `📌 *Contrato o anexos* - ${EMPRESA}
-
-Para solicitar una copia de tu contrato o anexos, indícanos:
-- Tu RUT
-- Qué documento específico necesitas
-
-Te lo enviaremos a través del sistema interno.`,
-        '5': `📌 *Otros* - ${EMPRESA}
-
-Por favor, describe tu consulta con detalle y en la brevedad te responderemos.`
+        '1': '📌 Licencias médicas - Adjunta el documento.',
+        '2': '📌 Vacaciones - Revisa tu saldo en el sistema interno.',
+        '3': '📌 Liquidaciones - Descárgalas desde el portal.',
+        '4': '📌 Contrato - Indícanos tu RUT.',
+        '5': '📌 Otros - Describe tu consulta.'
     };
-    return respuestas[opcion] || `Opción no válida. Responde con un número del 1 al 5.`;
+    return respuestas[opcion] || 'Opción no válida. Responde 1,2,3,4 o 5.';
 }
 
 function getMensajeCierre() {
-    return `📌 *Cierre de conversación*
-
-Hola 👋
-Esperamos haber resuelto tu consulta 😊
-
-Si necesitas más ayuda, no dudes en escribirnos nuevamente.
-*${EMPRESA}* agradece tu contacto.
-
-¡Que tengas un excelente día! 🌟`;
+    return `📌 ¡Gracias por contactarnos! Que tengas un excelente día 🌟`;
 }
 
-// ========== MANEJO DE CONVERSACIONES ==========
+// ========== ESTADOS ==========
 const estados = new Map();
-const ESTADOS = {
-    INICIO: 'inicio',
-    ESPERANDO_DATOS: 'esperando_datos',
-    ESPERANDO_OPCION: 'esperando_opcion'
-};
 
-// ========== PROCESAR MENSAJES ==========
 client.on('message', async (message) => {
     try {
-        const contacto = await message.getContact();
-        const numero = contacto.number;
+        if (message.fromMe) return;
+        
+        const numero = message.from;
         const cuerpo = message.body.trim().toLowerCase();
-        const cuerpoOriginal = message.body.trim();
+        const original = message.body.trim();
 
-        console.log(`📩 Mensaje de ${numero}: ${cuerpoOriginal.substring(0, 50)}`);
+        console.log(`📩 Mensaje de ${numero}`);
 
         if (!estaEnHorarioLaboral()) {
             await message.reply(getMensajeFueraHorario());
             return;
         }
 
-        let estado = estados.get(numero) || ESTADOS.INICIO;
+        let estado = estados.get(numero) || 'inicio';
 
-        if (cuerpo === 'salir' || cuerpo === 'fin') {
+        if (cuerpo === 'salir') {
             estados.delete(numero);
             await message.reply(getMensajeCierre());
             return;
         }
 
-        if (estado === ESTADOS.INICIO) {
-            estados.set(numero, ESTADOS.ESPERANDO_DATOS);
+        if (estado === 'inicio') {
+            estados.set(numero, 'esperando_datos');
             await message.reply(getMensajeBienvenida());
-
-        } else if (estado === ESTADOS.ESPERANDO_DATOS) {
-            console.log(`📋 Datos de ${numero}: ${cuerpoOriginal}`);
+        } 
+        else if (estado === 'esperando_datos') {
             await message.reply(getMensajeConfirmacion());
-            await message.reply("¿Tu consulta es sobre información general? (responde SI o NO)");
             estados.set(numero, 'preguntando_si');
-
-        } else if (estado === 'preguntando_si') {
+        }
+        else if (estado === 'preguntando_si') {
             if (cuerpo === 'si') {
-                estados.set(numero, ESTADOS.ESPERANDO_OPCION);
+                estados.set(numero, 'esperando_opcion');
                 await message.reply(getMenuInfoGeneral());
             } else {
                 estados.delete(numero);
-                await message.reply("Perfecto, tu consulta ha sido registrada. Te responderemos a la brevedad.");
+                await message.reply('Consulta registrada. Te responderemos pronto.');
             }
-
-        } else if (estado === ESTADOS.ESPERANDO_OPCION && /^[1-5]$/.test(cuerpo)) {
+        }
+        else if (estado === 'esperando_opcion' && /^[1-5]$/.test(cuerpo)) {
             await message.reply(getRespuestaOpcion(cuerpo));
             estados.delete(numero);
             await message.reply(getMensajeCierre());
-
-        } else if (estado === ESTADOS.ESPERANDO_OPCION) {
-            await message.reply("Por favor, responde con un número del 1 al 5.");
+        }
+        else if (estado === 'esperando_opcion') {
+            await message.reply('Responde con un número del 1 al 5.');
         }
 
     } catch (error) {
         console.error('❌ Error:', error);
-        await message.reply('Lo sentimos, ocurrió un error. Por favor intenta nuevamente.');
     }
 });
 
-// ========== MANTENER EL PROCESO VIVO ==========
-process.on('SIGTERM', () => {
-    console.log('⚠️ Señal SIGTERM ignorada. El bot sigue funcionando...');
-});
-
-process.on('SIGINT', () => {
-    console.log('⚠️ Señal SIGINT ignorada. El bot sigue funcionando...');
-});
-
-// ========== INICIAR EL BOT ==========
+// ========== INICIAR ==========
 client.initialize();
-console.log(`🚀 Bot iniciado - ${EMPRESA}`);
-console.log('💡 Esperando código QR...');
+console.log('💡 QR aparecerá en 30-90 segundos...');
