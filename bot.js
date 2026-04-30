@@ -1,17 +1,109 @@
-// bot.js - Bot de WhatsApp para Grupo Euskadi - Flujo COMPLETO con fix Railway
+// bot.js - Bot de WhatsApp para Grupo Euskadi - Flujo COMPLETO + QR en URL
 const { Client, LocalAuth } = require('whatsapp-web.js');
 const qrcode = require('qrcode-terminal');
 const express = require('express');
 const app = express();
 const PORT = process.env.PORT || 3000;
 
-// ========== SERVIDOR WEB PARA KEEP ALIVE ==========
+// ========== SERVIDOR WEB PARA KEEP ALIVE Y QR ==========
+let qrCodeGenerado = null;
+
 app.get('/', (req, res) => {
     res.send('🤖 Bot de WhatsApp - Grupo Euskadi - Funcionando 24/7');
 });
 
+// Endpoint para ver el QR en el navegador
+app.get('/qr', (req, res) => {
+    if (qrCodeGenerado) {
+        res.send(`
+            <html>
+                <head>
+                    <title>QR Bot - Grupo Euskadi</title>
+                    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+                    <style>
+                        body {
+                            font-family: Arial, sans-serif;
+                            text-align: center;
+                            padding: 50px;
+                            background: #f0f0f0;
+                        }
+                        .container {
+                            background: white;
+                            border-radius: 20px;
+                            padding: 30px;
+                            max-width: 500px;
+                            margin: 0 auto;
+                            box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+                        }
+                        img {
+                            max-width: 100%;
+                            height: auto;
+                            border: 5px solid #25D366;
+                            border-radius: 15px;
+                        }
+                        h1 { color: #075E54; }
+                        .steps {
+                            text-align: left;
+                            margin-top: 20px;
+                            padding: 15px;
+                            background: #f9f9f9;
+                            border-radius: 10px;
+                        }
+                        .qr-text {
+                            font-family: monospace;
+                            font-size: 10px;
+                            word-break: break-all;
+                            background: #eee;
+                            padding: 10px;
+                            border-radius: 5px;
+                            margin-top: 15px;
+                        }
+                    </style>
+                </head>
+                <body>
+                    <div class="container">
+                        <h1>🤖 Grupo Euskadi</h1>
+                        <h2>Recursos Humanos</h2>
+                        <h3>📱 Escanea este QR con WhatsApp</h3>
+                        <img src="https://quickchart.io/qr?text=${encodeURIComponent(qrCodeGenerado)}&size=350" />
+                        <div class="steps">
+                            <strong>📌 Pasos:</strong><br>
+                            1️⃣ Abre WhatsApp en tu teléfono<br>
+                            2️⃣ Menú (⋮) → Dispositivos vinculados<br>
+                            3️⃣ Toca "Vincular dispositivo"<br>
+                            4️⃣ ESCANEA el código QR de arriba<br>
+                            5️⃣ ¡El bot comenzará a funcionar!
+                        </div>
+                        <div class="qr-text">
+                            <strong>🔐 Texto del QR (copia si es necesario):</strong><br>
+                            ${qrCodeGenerado.substring(0, 200)}...
+                        </div>
+                    </div>
+                </body>
+            </html>
+        `);
+    } else {
+        res.send(`
+            <html>
+                <head><title>QR Bot - Grupo Euskadi</title></head>
+                <body style="text-align:center; padding:50px; font-family:Arial;">
+                    <h1>🤖 Grupo Euskadi - RRHH</h1>
+                    <p>⏳ <strong>Generando código QR...</strong></p>
+                    <p>Espera unos segundos y recarga esta página.</p>
+                    <p>📱 Si ya escaneaste el QR, el bot ya está conectado.</p>
+                    <p><small>La página se actualiza automáticamente cada 10 segundos</small></p>
+                    <script>
+                        setTimeout(() => location.reload(), 10000);
+                    </script>
+                </body>
+            </html>
+        `);
+    }
+});
+
 app.listen(PORT, '0.0.0.0', () => {
     console.log(`🌐 Servidor web activo en puerto ${PORT}`);
+    console.log(`📱 PARA ESCANEAR QR: https://tuservicio.railway.app/qr`);
 });
 
 // ========== CONFIGURACIÓN ==========
@@ -55,29 +147,29 @@ const client = new Client({
     }
 });
 
-// ========== QR - VERSIÓN GARANTIZADA PARA RAILWAY ==========
+// ========== QR - CON LOGS Y URL ==========
 client.on('qr', (qr) => {
-    console.log('\n');
-    console.log('╔════════════════════════════════════════════════════════════╗');
-    console.log('║     🔴 ESCANEA ESTE QR CON WHATSAPP WEB 🔴                  ║');
+    qrCodeGenerado = qr;
+    
+    console.log('\n╔════════════════════════════════════════════════════════════╗');
+    console.log('║     🔴 QR GENERADO - ESCANEA CON WHATSAPP WEB 🔴             ║');
     console.log('╚════════════════════════════════════════════════════════════╝');
-    console.log('\n');
-    console.log(qr);
-    console.log('\n');
-    console.log('╔════════════════════════════════════════════════════════════╗');
-    console.log('║  📱 INSTRUCCIONES:                                         ║');
-    console.log('║  1. Abre WhatsApp en tu teléfono                           ║');
-    console.log('║  2. Menú (⋮) → Dispositivos vinculados                     ║');
-    console.log('║  3. Toca "Vincular dispositivo"                            ║');
-    console.log('║  4. ESCANEA EL CÓDIGO QR DE ARRIBA                         ║');
-    console.log('║  5. El QR expira en 2 minutos                              ║');
-    console.log('╚════════════════════════════════════════════════════════════╝');
-    console.log('\n');
+    console.log('\n📋 TEXTO DEL QR (primeros 100 caracteres):');
+    console.log(qr.substring(0, 100) + '...\n');
+    console.log('🌐 VER QR EN NAVEGADOR:');
+    console.log(`   https://quickchart.io/qr?text=${encodeURIComponent(qr)}&size=350`);
+    console.log('\n📱 INSTRUCCIONES:');
+    console.log('   1. Abre WhatsApp en tu teléfono');
+    console.log('   2. Menú (⋮) → Dispositivos vinculados');
+    console.log('   3. Toca "Vincular dispositivo"');
+    console.log('   4. ESCANEA el QR de arriba o desde el enlace');
+    console.log('══════════════════════════════════════════════════════════════\n');
 });
 
 // ========== EVENTOS DE DEPURACIÓN ==========
 client.on('authenticated', () => {
     console.log('✅ Autenticación exitosa - QR escaneado correctamente');
+    qrCodeGenerado = null;
 });
 
 client.on('auth_failure', (msg) => {
@@ -98,11 +190,12 @@ client.on('loading', (status) => {
 });
 
 client.on('ready', () => {
-    console.log('╔════════════════════════════════════════════════════════════╗');
-    console.log(`║     ✅ BOT CONECTADO CORRECTAMENTE                          ║`);
+    console.log('\n╔════════════════════════════════════════════════════════════╗');
+    console.log('║     ✅ BOT CONECTADO CORRECTAMENTE                          ║');
     console.log(`║     📌 ${EMPRESA} - Recursos Humanos                         ║`);
     console.log(`║     🕘 Horario: Lunes a Viernes de ${HORARIO_INICIO}:00 a ${HORARIO_FIN}:00 hrs       ║`);
-    console.log(`╚════════════════════════════════════════════════════════════╝`);
+    console.log('║     🎯 El bot está listo para responder mensajes            ║');
+    console.log('╚════════════════════════════════════════════════════════════╝\n');
 });
 
 // ========== VERIFICAR HORARIO LABORAL ==========
