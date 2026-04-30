@@ -1,4 +1,6 @@
-// bot.js - Bot de WhatsApp para Grupo Euskadi - Versión DEFINITIVA
+// bot.js - Bot de WhatsApp para Grupo Euskadi - VERSIÓN DEFINITIVA
+// Funciona en Render, Railway, VPS o cualquier servidor Linux
+
 const { Client, LocalAuth } = require('whatsapp-web.js');
 const express = require('express');
 const app = express();
@@ -87,6 +89,7 @@ app.get('/qr', (req, res) => {
                 <body style="text-align:center; padding:50px; font-family:Arial;">
                     <h1>⏳ GENERANDO QR...</h1>
                     <p>Espera 30-60 segundos y recarga esta página.</p>
+                    <p><strong>Estado del bot:</strong> Iniciando Puppeteer...</p>
                     <script>setTimeout(() => location.reload(), 10000);</script>
                 </body>
             </html>
@@ -105,8 +108,10 @@ const HORARIO_FIN = 18;
 
 console.log('🚀 Iniciando bot de WhatsApp...');
 console.log('⏳ Esto puede tomar 30-60 segundos...');
+console.log('💡 El QR aparecerá en la URL /qr cuando esté listo...');
 
-// ========== CONFIGURACIÓN DEL CLIENTE ==========
+// ========== CLIENTE CONFIGURADO CORRECTAMENTE ==========
+// SIN executablePath para que use Chromium por defecto
 const client = new Client({
     authStrategy: new LocalAuth({
         clientId: "grupo-euskadi-bot",
@@ -129,7 +134,7 @@ const client = new Client({
             '--disable-backgrounding-occluded-windows',
             '--disable-renderer-backgrounding'
         ],
-        protocolTimeout: 180000,
+        protocolTimeout: 300000,
         timeout: 120000
     }
 });
@@ -163,7 +168,7 @@ client.on('ready', () => {
     console.log('=========================================\n');
 });
 
-// ========== EVENTO ERROR ==========
+// ========== EVENTOS DE ERROR ==========
 client.on('auth_failure', (msg) => {
     console.error('❌ Error de autenticación:', msg);
     console.log('🔄 Esperando nuevo QR...');
@@ -177,10 +182,14 @@ client.on('disconnected', (reason) => {
     setTimeout(() => client.initialize(), 5000);
 });
 
-// ========== VERIFICAR HORARIO ==========
+client.on('error', (err) => {
+    console.error('❌ Error en el cliente:', err.message);
+});
+
+// ========== VERIFICAR HORARIO LABORAL ==========
 function estaEnHorarioLaboral() {
     const ahora = new Date();
-    // Ajuste horario para Chile (UTC-3 o UTC-4 según época del año)
+    // Ajuste horario para Chile (UTC-3 o UTC-4)
     const horaChile = ahora.getUTCHours() - 3;
     const dia = ahora.getUTCDay();
     
@@ -188,7 +197,7 @@ function estaEnHorarioLaboral() {
     return horaChile >= HORARIO_INICIO && horaChile < HORARIO_FIN;
 }
 
-// ========== MENSAJES ==========
+// ========== MENSAJES DEL SISTEMA ==========
 function getMensajeFueraHorario() {
     return `📌 *Fuera de horario*
 
@@ -350,10 +359,14 @@ client.on('message', async (message) => {
     }
 });
 
-// ========== MANTENER VIVO ==========
-process.on('SIGTERM', () => console.log('⚠️ SIGTERM recibido, el bot sigue funcionando...'));
-process.on('SIGINT', () => console.log('⚠️ SIGINT recibido, el bot sigue funcionando...'));
+// ========== MANTENER EL PROCESO VIVO ==========
+process.on('SIGTERM', () => {
+    console.log('⚠️ Señal SIGTERM ignorada. El bot sigue funcionando...');
+});
 
-// ========== INICIAR ==========
+process.on('SIGINT', () => {
+    console.log('⚠️ Señal SIGINT ignorada. El bot sigue funcionando...');
+});
+
+// ========== INICIAR EL BOT ==========
 client.initialize();
-console.log('💡 El QR aparecerá en la URL /qr cuando esté listo...');
