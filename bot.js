@@ -37,13 +37,20 @@ const client = new Client({
 });
 
 // ========== QR - VERSIÓN FUNCIONAL EN RAILWAY ==========
+// Reemplaza la sección del QR con esto:
 client.on('qr', (qr) => {
-    console.log('═══════════════════════════════════════════════════');
-    console.log('🔐 ESCANEA ESTE QR CON WHATSAPP:');
-    console.log('═══════════════════════════════════════════════════');
-    qrcode.generate(qr, { small: true });
-    console.log('📱 Abre WhatsApp → Menú → Dispositivos vinculados');
-    console.log('═══════════════════════════════════════════════════');
+    console.log('=========================================');
+    console.log('🔴 CÓDIGO QR GENERADO - ESCANEA AHORA 🔴');
+    console.log('=========================================');
+    console.log(qr);
+    console.log('=========================================');
+    console.log('📱 INSTRUCCIONES:');
+    console.log('1. Abre WhatsApp en tu teléfono');
+    console.log('2. Menú (⋮) → Dispositivos vinculados');
+    console.log('3. Toca "Vincular dispositivo"');
+    console.log('4. Escanea el código QR de arriba');
+    console.log('=========================================');
+    process.stdout.write('\x07'); // Hace "beep" para llamar la atención
 });
 
 // ========== BOT CONECTADO ==========
@@ -238,6 +245,25 @@ process.on('SIGINT', () => {
 });
 
 // ========== INICIAR ==========
-client.initialize();
-console.log(`🚀 Bot iniciado - ${EMPRESA}`);
-console.log('💡 Esperando código QR...');
+// Agrega esto ANTES de client.initialize()
+console.log('🔄 Inicializando Puppeteer...');
+
+client.on('loading', (status) => {
+    console.log('⏳ Estado de carga:', status);
+});
+
+client.on('authenticated', () => {
+    console.log('✅ Autenticación exitosa');
+});
+
+client.on('auth_failure', (msg) => {
+    console.error('❌ Fallo autenticación:', msg);
+});
+
+client.on('disconnected', (reason) => {
+    console.log('⚠️ Desconectado:', reason);
+});
+
+client.on('error', (err) => {
+    console.error('❌ Error general:', err);
+});
