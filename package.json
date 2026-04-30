@@ -1,13 +1,17 @@
 {
   "name": "whatsapp-bot-grupo-euskadi",
   "version": "1.0.0",
+  "description": "Bot de WhatsApp para Recursos Humanos",
   "main": "bot.js",
   "scripts": {
     "start": "node bot.js"
   },
   "dependencies": {
-    "express": "^4.22.1",
+    "express": "^4.18.2",
     "qrcode-terminal": "^0.12.0",
-    "whatsapp-web.js": "^1.34.7"
+    "whatsapp-web.js": "^1.23.0"
+  },
+  "engines": {
+    "node": "18.x"
   }
 }
