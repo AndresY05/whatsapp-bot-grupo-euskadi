@@ -199,6 +199,8 @@ client.on('message', async (message) => {
 });
 
 // ========== INICIAR ==========
-client.initialize();
-console.log(`🚀 Bot iniciado - ${EMPRESA}`);
-console.log('💡 Esperando código QR...');
+client.on('qr', (qr) => {
+    console.log('🔐 ESCANEA ESTE QR CON WHATSAPP:');
+    console.log(qr);  // Esto muestra el QR como texto plano
+    console.log('📱 Escanéalo con WhatsApp antes de que expire');
+});
