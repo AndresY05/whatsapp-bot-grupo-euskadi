@@ -44,11 +44,25 @@ app.get('/qr', (req, res) => {
 app.listen(PORT, '0.0.0.0', () => console.log(`✅ Servidor: http://localhost:${PORT}`));
 
 // ========== CLIENTE CONFIGURADO ==========
+const os = require('os');
+const path = require('path');
+
+let executablePath;
+if (process.env.PUPPETEER_EXECUTABLE_PATH) {
+    executablePath = process.env.PUPPETEER_EXECUTABLE_PATH;
+} else if (os.platform() === 'linux') {
+    executablePath = '/usr/bin/google-chrome-stable';
+} else if (os.platform() === 'win32') {
+    executablePath = 'C:\\Program Files\\Google\\Chrome\\Application\\chrome.exe';
+} else {
+    executablePath = undefined;
+}
+
 const client = new Client({
     authStrategy: new LocalAuth({ dataPath: './session' }),
     puppeteer: {
         headless: true,
-        executablePath: process.env.PUPPETEER_EXECUTABLE_PATH || 'C:\\Program Files\\Google\\Chrome\\Application\\chrome.exe',
+        executablePath: executablePath,
         args: [
             '--no-sandbox',
             '--disable-setuid-sandbox',
