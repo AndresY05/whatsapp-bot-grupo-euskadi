@@ -1,372 +1,118 @@
-// bot.js - Bot de WhatsApp para Grupo Euskadi - VERSIÓN DEFINITIVA
-// Funciona en Render, Railway, VPS o cualquier servidor Linux
-
+// bot.js - Versión OPTIMIZADA PARA DOCKER - Grupo Euskadi
 const { Client, LocalAuth } = require('whatsapp-web.js');
 const express = require('express');
+const QRCode = require('qrcode');
 const app = express();
 const PORT = process.env.PORT || 3000;
 
 let qrCodeGenerado = null;
+let qrCodeDataUrl = null;
 let botConectado = false;
 
 // ========== SERVIDOR WEB ==========
 app.get('/', (req, res) => {
     res.send(`
         <html>
-            <head>
-                <title>Bot Grupo Euskadi - RRHH</title>
-                <meta name="viewport" content="width=device-width, initial-scale=1.0">
-                <style>
-                    body { font-family: Arial; text-align: center; padding: 50px; background: #f0f0f0; }
-                    .container { background: white; border-radius: 20px; padding: 30px; max-width: 500px; margin: 0 auto; }
-                    .conectado { color: green; }
-                    .esperando { color: orange; }
-                </style>
-            </head>
-            <body>
-                <div class="container">
-                    <h1>🤖 Grupo Euskadi - RRHH</h1>
-                    <h2 class="${botConectado ? 'conectado' : 'esperando'}">
-                        ${botConectado ? '✅ BOT CONECTADO' : '⏳ ESPERANDO CONEXIÓN'}
-                    </h2>
-                    ${qrCodeGenerado && !botConectado ? `
-                        <p>📱 <strong>Escanea el QR:</strong></p>
-                        <a href="/qr">👉 HAZ CLIC AQUÍ PARA VER EL QR 👈</a>
-                    ` : ''}
-                    ${botConectado ? '<p>🎯 El bot ya está respondiendo mensajes</p>' : ''}
-                    <p><small>Horario: Lunes a Viernes 8:00 - 18:00 hrs</small></p>
-                </div>
+            <head><title>Bot Grupo Euskadi</title></head>
+            <body style="text-align:center; padding:50px; font-family:Arial;">
+                <h1>🤖 Grupo Euskadi - RRHH</h1>
+                <h2 style="color:${botConectado ? 'green' : 'orange'}">
+                    ${botConectado ? '✅ BOT CONECTADO' : '⏳ ESPERANDO CONEXIÓN'}
+                </h2>
+                ${qrCodeGenerado && !botConectado ? '<p><a href="/qr">👉 VER QR 👈</a></p>' : ''}
             </body>
         </html>
     `);
 });
 
 app.get('/qr', (req, res) => {
-    if (qrCodeGenerado && !botConectado) {
+    if (qrCodeDataUrl && !botConectado) {
         res.send(`
             <html>
-                <head>
-                    <title>QR - Grupo Euskadi</title>
-                    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-                    <style>
-                        body { text-align: center; padding: 20px; font-family: Arial; background: #f0f0f0; }
-                        .qr-container { background: white; border-radius: 20px; padding: 30px; max-width: 500px; margin: 0 auto; }
-                        img { max-width: 100%; border: 5px solid #25D366; border-radius: 15px; }
-                        .steps { text-align: left; margin-top: 20px; background: #f9f9f9; padding: 15px; border-radius: 10px; }
-                    </style>
-                </head>
-                <body>
-                    <div class="qr-container">
-                        <h1>🤖 Grupo Euskadi</h1>
-                        <h2>📱 ESCANEA ESTE QR</h2>
-                        <img src="https://quickchart.io/qr?text=${encodeURIComponent(qrCodeGenerado)}&size=350" />
-                        <div class="steps">
-                            <strong>📌 PASOS:</strong><br><br>
-                            1️⃣ Abre WhatsApp en tu teléfono<br>
-                            2️⃣ Menú (⋮) → Dispositivos vinculados<br>
-                            3️⃣ Toca "Vincular dispositivo"<br>
-                            4️⃣ ESCANEA el código QR de arriba<br>
-                            5️⃣ ¡El bot comenzará a funcionar!
-                        </div>
-                        <p><small>El QR expira en 2 minutos. Si expira, refresca esta página.</small></p>
-                    </div>
-                </body>
-            </html>
-        `);
-    } else if (botConectado) {
-        res.send(`
-            <html>
-                <body style="text-align:center; padding:50px; font-family:Arial;">
-                    <h1>✅ BOT YA ESTÁ CONECTADO</h1>
-                    <p>El QR ya no es necesario. El bot ya está respondiendo mensajes.</p>
-                    <a href="/">Volver al inicio</a>
+                <body style="text-align:center; padding:20px; font-family:Arial;">
+                    <h1>📱 ESCANEA ESTE QR</h1>
+                    <img src="${qrCodeDataUrl}" alt="QR WhatsApp" width="350" height="350" />
+                    <p>Abre WhatsApp, ve a <strong>Dispositivos vinculados</strong> y escanea el código.</p>
                 </body>
             </html>
         `);
     } else {
-        res.send(`
-            <html>
-                <body style="text-align:center; padding:50px; font-family:Arial;">
-                    <h1>⏳ GENERANDO QR...</h1>
-                    <p>Espera 30-60 segundos y recarga esta página.</p>
-                    <p><strong>Estado del bot:</strong> Iniciando Puppeteer...</p>
-                    <script>setTimeout(() => location.reload(), 10000);</script>
-                </body>
-            </html>
-        `);
+        res.send('<h1>⏳ Generando QR... Recarga en 10 seg</h1><script>setTimeout(()=>location.reload(),10000);</script>');
     }
 });
 
-app.listen(PORT, '0.0.0.0', () => {
-    console.log(`✅ Servidor web: http://localhost:${PORT}`);
-});
+app.listen(PORT, '0.0.0.0', () => console.log(`✅ Servidor: http://localhost:${PORT}`));
 
-// ========== CONFIGURACIÓN ==========
-const EMPRESA = "Grupo Euskadi";
-const HORARIO_INICIO = 8;
-const HORARIO_FIN = 18;
-
-console.log('🚀 Iniciando bot de WhatsApp...');
-console.log('⏳ Esto puede tomar 30-60 segundos...');
-console.log('💡 El QR aparecerá en la URL /qr cuando esté listo...');
-
-// ========== CLIENTE CONFIGURADO CORRECTAMENTE ==========
-// SIN executablePath para que use Chromium por defecto
+// ========== CLIENTE CONFIGURADO ==========
 const client = new Client({
-    authStrategy: new LocalAuth({
-        clientId: "grupo-euskadi-bot",
-        dataPath: "./.wwebjs_auth"
-    }),
+    authStrategy: new LocalAuth({ dataPath: './session' }),
     puppeteer: {
         headless: true,
+        executablePath: process.env.PUPPETEER_EXECUTABLE_PATH || '/usr/bin/google-chrome-stable',
         args: [
             '--no-sandbox',
             '--disable-setuid-sandbox',
             '--disable-dev-shm-usage',
-            '--disable-accelerated-2d-canvas',
             '--disable-gpu',
-            '--disable-extensions',
-            '--disable-default-apps',
-            '--disable-sync',
-            '--no-first-run',
-            '--disable-features=VizDisplayCompositor',
-            '--disable-background-timer-throttling',
-            '--disable-backgrounding-occluded-windows',
-            '--disable-renderer-backgrounding'
-        ],
-        protocolTimeout: 300000,
-        timeout: 120000
+            '--single-process',
+            '--disable-extensions'
+        ]
     }
 });
 
-// ========== EVENTO QR ==========
-client.on('qr', (qr) => {
+// ========== EVENTOS ==========
+client.on('qr', async (qr) => {
     qrCodeGenerado = qr;
-    console.log('\n=========================================');
-    console.log('🔴 QR GENERADO');
-    console.log('=========================================');
-    console.log(`📱 Para escanear el QR, ve a:`);
-    console.log(`   https://${process.env.RENDER_EXTERNAL_HOSTNAME || 'localhost'}/qr`);
-    console.log('=========================================\n');
+    qrCodeDataUrl = await QRCode.toDataURL(qr, { width: 350 });
+    console.log('🔴 QR generado. Ve a /qr');
 });
 
-// ========== EVENTO AUTENTICACIÓN ==========
-client.on('authenticated', () => {
-    console.log('✅ Autenticación exitosa');
-    qrCodeGenerado = null;
-});
-
-// ========== EVENTO CONECTADO ==========
 client.on('ready', () => {
     botConectado = true;
     qrCodeGenerado = null;
-    console.log('\n=========================================');
-    console.log('✅ BOT CONECTADO CORRECTAMENTE');
-    console.log(`📌 ${EMPRESA} - Recursos Humanos`);
-    console.log(`🕘 Horario: Lunes a Viernes ${HORARIO_INICIO}:00 - ${HORARIO_FIN}:00 hrs`);
-    console.log('🎯 El bot ya está respondiendo mensajes');
-    console.log('=========================================\n');
+    qrCodeDataUrl = null;
+    console.log('✅ BOT CONECTADO');
 });
 
-// ========== EVENTOS DE ERROR ==========
-client.on('auth_failure', (msg) => {
-    console.error('❌ Error de autenticación:', msg);
-    console.log('🔄 Esperando nuevo QR...');
-    botConectado = false;
-});
+client.on('auth_failure', () => console.log('❌ Error de autenticación'));
+client.on('disconnected', () => console.log('⚠️ Desconectado. Reconectando...'));
 
-client.on('disconnected', (reason) => {
-    console.log('⚠️ Bot desconectado:', reason);
-    console.log('🔄 Reconectando en 5 segundos...');
-    botConectado = false;
-    setTimeout(() => client.initialize(), 5000);
-});
-
-client.on('error', (err) => {
-    console.error('❌ Error en el cliente:', err.message);
-});
-
-// ========== VERIFICAR HORARIO LABORAL ==========
-function estaEnHorarioLaboral() {
-    const ahora = new Date();
-    // Ajuste horario para Chile (UTC-3 o UTC-4)
-    const horaChile = ahora.getUTCHours() - 3;
-    const dia = ahora.getUTCDay();
-    
-    if (dia === 0 || dia === 6) return false;
-    return horaChile >= HORARIO_INICIO && horaChile < HORARIO_FIN;
+// ========== HORARIO (Chile) ==========
+function estaEnHorario() {
+    const now = new Date();
+    const hora = now.getHours();
+    const min = now.getMinutes();
+    const dia = now.getDay();
+    const inicio = (hora === 8 && min >= 30) || hora > 8;
+    const fin = (hora === 18 && min <= 15) || hora < 18;
+    return dia >= 1 && dia <= 5 && inicio && fin;
 }
 
-// ========== MENSAJES DEL SISTEMA ==========
-function getMensajeFueraHorario() {
-    return `📌 *Fuera de horario*
+// ========== MENSAJES RRHH ==========
+const MENSAJES_RRHH = {
+    bienvenida: `Hola 👋 Bienvenido/a al canal de Recursos Humanos. Tu consulta es importante para nosotros, y será respondida a la brevedad dentro de nuestro horario de atención 🕘 Por favor, indícanos: Nombre completo Área o cargo Motivo de tu consulta Instalación ¡Gracias! 😊 Grupo Euskadi`,
+    fueraHorario: `Hola 👋 Gracias por escribir a Recursos Humanos. En este momento estamos fuera de nuestro horario de atención 🕘 Nuestro horario es de lunes a viernes de 08:30 a 18:15 hrs. Te responderemos a la brevedad en el siguiente día hábil. ¡Gracias por tu paciencia! 🙌 Grupo Euskadi`,
+    menuOpciones: `Hola 👋 Para ayudarte mejor, por favor indícanos el motivo de tu consulta: 1️⃣ Licencias médicas 2️⃣ Vacaciones 3️⃣ Liquidaciones de sueldo 4️⃣ Contrato o anexos 5️⃣ Otros Responde con el número de tu opción ✍️ Grupo Euskadi`,
+    confirmacionRecepcion: `Hola 👋 Hemos recibido tu solicitud correctamente ✅ Nuestro equipo la revisará y te responderá dentro de las próximas horas. ¡Gracias por contactarte con Recursos Humanos! 😊 Grupo Euskadi`,
+    solicitudDocumentos: `Hola 👋 Para poder ayudarte, necesitamos que adjuntes los siguientes documentos: 📎 Especificar documentos, por ejemplo: licencia médica, cédula de identidad, etc. Una vez recibidos, continuaremos con tu solicitud. ¡Gracias! 🙌 Grupo Euskadi`,
+    infoVacaciones: `Hola 👋 Sobre tu consulta de vacaciones: 📌 Puedes revisar tu saldo directamente en indicar plataforma o sistema interno. 📌 Para solicitar vacaciones, debes enviar tu solicitud a través de indicar proceso. Si necesitas más ayuda, escríbenos nuevamente 😊 Grupo Euskadi`,
+    cierreConversacion: `Hola 👋 Esperamos haber resuelto tu consulta 😊 Si necesitas más ayuda, no dudes en escribirnos nuevamente. ¡Que tengas un excelente día! 🌟 Grupo Euskadi`
+};
 
-Hola 👋
-Gracias por escribir a Recursos Humanos de *${EMPRESA}*.
+// ========== MENSAJES (simplificados pero funcionales) ==========
+const usuariosSaludados = new Set();
 
-🕘 Nuestro horario es:
-*Lunes a Viernes de 08:00 a 18:00 hrs*
-
-Te responderemos el próximo día hábil.
-
-¡Gracias por tu paciencia! 🙌`;
-}
-
-function getMensajeBienvenida() {
-    return `Hola 👋
-*Bienvenido/a a Recursos Humanos de ${EMPRESA}*
-
-Por favor, indícanos:
-
-📌 *Nombre completo*
-📌 *¿De cuál instalación vienes?*
-📌 *Motivo de tu consulta*
-
-¡Gracias! 😊`;
-}
-
-function getMensajeConfirmacion() {
-    return `✅ *Hemos recibido tu solicitud*
-
-¿Tu consulta es sobre información general?
-
-Responde *SI* o *NO*`;
-}
-
-function getMenuInfoGeneral() {
-    return `📋 *Información General - ${EMPRESA}*
-
-Selecciona una opción:
-
-1️⃣ Licencias médicas
-2️⃣ Vacaciones
-3️⃣ Liquidaciones de sueldo
-4️⃣ Contrato o anexos
-5️⃣ Otros
-
-Responde con el *número* de tu opción ✍️`;
-}
-
-function getRespuestaOpcion(opcion) {
-    const respuestas = {
-        '1': `📌 *Licencias médicas*
-
-Adjunta la foto o escaneo de tu licencia médica para derivarla al área correspondiente.`,
-        
-        '2': `📌 *Vacaciones*
-
-Puedes revisar tu saldo de vacaciones en el sistema interno.
-Para solicitar, usa el formulario interno de RRHH.`,
-        
-        '3': `📌 *Liquidaciones de sueldo*
-
-Descarga tus liquidaciones desde el portal del colaborador.
-Para períodos anteriores, indícanos qué meses necesitas.`,
-        
-        '4': `📌 *Contrato o anexos*
-
-Indícanos tu RUT y qué documento necesitas.
-Te lo enviaremos por el sistema interno.`,
-        
-        '5': `📌 *Otros*
-
-Describe tu consulta con detalle y te responderemos a la brevedad.`
-    };
-    return respuestas[opcion] || '❌ Opción no válida. Responde 1, 2, 3, 4 o 5.';
-}
-
-function getMensajeCierre() {
-    return `🌟 *¡Gracias por contactarnos!*
-
-Esperamos haber ayudado con tu consulta.
-
-*${EMPRESA}* agradece tu confianza.
-
-¡Que tengas un excelente día! 😊`;
-}
-
-// ========== MANEJO DE CONVERSACIONES ==========
-const estados = new Map();
-
-// ========== PROCESAR MENSAJES ==========
 client.on('message', async (message) => {
-    try {
-        if (message.fromMe) return;
-        
-        const contacto = await message.getContact();
-        const numero = contacto.number;
-        const cuerpo = message.body.trim().toLowerCase();
-        const original = message.body.trim();
-        
-        console.log(`📩 Mensaje de ${numero}: ${original.substring(0, 40)}`);
-        
-        // Verificar horario
-        if (!estaEnHorarioLaboral()) {
-            await message.reply(getMensajeFueraHorario());
-            return;
-        }
-        
-        let estado = estados.get(numero) || 'inicio';
-        
-        // Comando de salida
-        if (cuerpo === 'salir' || cuerpo === 'fin' || cuerpo === 'terminar') {
-            estados.delete(numero);
-            await message.reply(getMensajeCierre());
-            return;
-        }
-        
-        // Máquina de estados
-        switch (estado) {
-            case 'inicio':
-                estados.set(numero, 'esperando_datos');
-                await message.reply(getMensajeBienvenida());
-                break;
-                
-            case 'esperando_datos':
-                console.log(`📋 Datos guardados de ${numero}`);
-                await message.reply(getMensajeConfirmacion());
-                estados.set(numero, 'preguntando_si');
-                break;
-                
-            case 'preguntando_si':
-                if (cuerpo === 'si') {
-                    estados.set(numero, 'esperando_opcion');
-                    await message.reply(getMenuInfoGeneral());
-                } else {
-                    estados.delete(numero);
-                    await message.reply("✅ Tu consulta ha sido registrada. Te responderemos a la brevedad.");
-                }
-                break;
-                
-            case 'esperando_opcion':
-                if (/^[1-5]$/.test(cuerpo)) {
-                    await message.reply(getRespuestaOpcion(cuerpo));
-                    estados.delete(numero);
-                    await message.reply(getMensajeCierre());
-                } else {
-                    await message.reply("❌ Por favor, responde con un número del 1 al 5.");
-                }
-                break;
-                
-            default:
-                estados.set(numero, 'inicio');
-                await message.reply(getMensajeBienvenida());
-        }
-        
-    } catch (error) {
-        console.error('❌ Error al procesar mensaje:', error);
-        await message.reply('⚠️ Ocurrió un error. Por favor intenta nuevamente.');
+    if (message.fromMe) return;
+    if (!estaEnHorario()) {
+        await message.reply(MENSAJES_RRHH.fueraHorario);
+        return;
+    }
+    if (!usuariosSaludados.has(message.from)) {
+        await message.reply(MENSAJES_RRHH.bienvenida);
+        usuariosSaludados.add(message.from);
     }
 });
 
-// ========== MANTENER EL PROCESO VIVO ==========
-process.on('SIGTERM', () => {
-    console.log('⚠️ Señal SIGTERM ignorada. El bot sigue funcionando...');
-});
-
-process.on('SIGINT', () => {
-    console.log('⚠️ Señal SIGINT ignorada. El bot sigue funcionando...');
-});
-
-// ========== INICIAR EL BOT ==========
 client.initialize();
+console.log('🚀 Bot iniciado');
